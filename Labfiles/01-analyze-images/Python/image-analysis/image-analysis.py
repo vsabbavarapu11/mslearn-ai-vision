@@ -7,6 +7,10 @@ from azure.core.exceptions import HttpResponseError
 import requests
 
 # Import namespaces
+# added for Azure AI Services - vinay
+from azure.ai.vision.imageanalysis import ImageAnalysisClient
+from azure.ai.vision.imageanalysis.models import VisualFeatures
+from azure.core.credentials import AzureKeyCredential
 
 
 def main():
@@ -27,21 +31,32 @@ def main():
             image_data = f.read()
 
         # Authenticate Azure AI Vision client
-
+        # added for Azure AI Services - vinay
+        cv_client = ImageAnalysisClient(
+        endpoint=ai_endpoint,
+        credential=AzureKeyCredential(ai_key)
+        )
         
         # Analyze image
-        AnalyzeImage(image_file, image_data, cv_client)
-        
-        except Exception as ex:
-        print(ex)
+        #AnalyzeImage(image_file, image_data, cv_client)
+    except HttpResponseError as e:
+        print(f"Status code: {e.status_code}")
 
-
-def AnalyzeImage(image_filename, image_data, cv_client):
-    print('\nAnalyzing image...')
+    def AnalyzeImage(image_filename, image_data, cv_client):
+        print('\nAnalyzing image...')
 
     try:
         # Get result with specified features to be retrieved
-        
+    # added for Azure AI Services - vinay
+        result = cv_client.analyze(
+        image_data=image_data,
+        visual_features=[
+            VisualFeatures.CAPTION,
+            VisualFeatures.DENSE_CAPTIONS,
+            VisualFeatures.TAGS,
+            VisualFeatures.OBJECTS,
+            VisualFeatures.PEOPLE],
+        )    
 
     except HttpResponseError as e:
         print(f"Status code: {e.status_code}")
@@ -49,8 +64,21 @@ def AnalyzeImage(image_filename, image_data, cv_client):
         print(f"Message: {e.error.message}")
 
     # Display analysis results
-    
+    # added for Azure AI Services - vinay
+    # Get image captions
+    if result.caption is not None:
+       print("\nCaption:")
+       print(" Caption: '{}' (confidence: {:.2f}%)".format(result.caption.text, result.caption.confidence * 100))
 
+    # Get image dense captions
+    if result.dense_captions is not None:
+      print("\nDense Captions:")
+    for caption in result.dense_captions.list:
+      print(" Caption: '{}' (confidence: {:.2f}%)".format(caption.text, caption.confidence * 100))
+
+    # Get image tags
+    # Get objects in the image
+ 
 
 if __name__ == "__main__":
     main()
